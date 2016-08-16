@@ -16,10 +16,12 @@ import (
 	"fmt"
 	"go/build"
 	"log"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -59,6 +61,7 @@ var (
 		"base":       path.Base,
 		"md":         mdFunc,
 		"pre":        preFunc,
+		"gh_url":     ghUrlFunc,
 	}
 )
 
@@ -78,6 +81,17 @@ func mdFunc(text string) string {
 
 func preFunc(text string) string {
 	return "``` go\n" + text + "\n```"
+}
+
+func ghUrlFunc(text string) string {
+	text = strings.Replace(text, "/src/target/", "", 1)
+	u, _ := url.Parse(text)
+	if u.Fragment == "" {
+		return "./" + text
+	}
+	// godoc requires a 10-line adjustment for some reason...
+	i, _ := strconv.Atoi(u.Fragment[1:])
+	return "./" + u.Path + "#L" + strconv.Itoa(i+10)
 }
 
 func readTemplate(name, data string) *template.Template {
