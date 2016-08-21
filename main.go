@@ -18,6 +18,7 @@ import (
 	"go/build"
 	"go/doc"
 	"go/token"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -49,18 +50,49 @@ var (
 	importAs          = flag.String("import_as", "", "import path to display")
 	importLinks       = flag.Bool("import_links", true, "link imports to their relative path or godoc.org page otherwise")
 	verifyImportLinks = flag.Bool("verify_import_links", true, "verify godoc.org links are accessible")
+	importLinksFile   = flag.String("import_links_file", "", "file location to read and write state for godoc.org verifications")
 
 	fmtProtobuf             = flag.Bool("fmt_protobuf", true, "enable formatting for generated Protobuf docs")
 	protobufPreludeMatcher  = flag.String("protobuf_prelude_matcher", "generated protocol buffer package", "string from which to match generate Protobuf prelude")
 	protobufFilesMatcher    = flag.String("protobuf_files_matcher", "generated from these files", "string from which to match .proto files list")
 	protobufMessagesMatcher = flag.String("protobuf_messages_matcher", "these top-level messages", "string from which to match Protobuf messages list")
 
-	stdLib = getStdLib()
+	stdLib           = getStdLib()
+	importLinksState = make(map[string]string)
+)
+
+const (
+	validImportKey   = "valid"
+	invalidImportKey = "invalid"
 )
 
 func init() {
 	flag.Usage = usage
 	flag.Parse()
+
+	if !*verifyImportLinks || *importLinksFile == "" {
+		return
+	}
+
+	if _, err := os.Stat(*importLinksFile); err != nil && os.IsNotExist(err) {
+		return
+	}
+
+	b, err := ioutil.ReadFile(*importLinksFile)
+	if err != nil {
+		usage()
+	}
+
+	for _, line := range strings.Split(string(b), "\n") {
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 || fields[0] == "" || fields[1] == "" {
+			continue
+		}
+		importLinksState[fields[0]] = fields[1]
+	}
 }
 
 func usage() {

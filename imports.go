@@ -220,7 +220,7 @@ func listImportsFunc(info *godoc.PageInfo, imports []string, importPath string) 
 			continue
 		}
 		godocUrl := "https://godoc.org/" + imp
-		if !*verifyImportLinks || isValidGodocUrl(godocUrl) {
+		if !*verifyImportLinks || isValidGodocUrl(godocUrl, importLinksState) {
 			nonStd[i] = fmt.Sprintf("[%s](%s)", imp, godocUrl)
 		}
 	}
@@ -228,11 +228,33 @@ func listImportsFunc(info *godoc.PageInfo, imports []string, importPath string) 
 	return "- " + strings.Join(nonStd, "\n- ")
 }
 
-func isValidGodocUrl(url string) bool {
-	resp, err := http.Head(url)
-	if err != nil {
-		return false
+func isValidGodocUrl(url string, validityMap map[string]string) bool {
+	if validityMap != nil && validityMap[url] != "" {
+		return validityMap[url] == validImportKey
 	}
+
+	resp, err := http.Head(url)
 	resp.Body.Close()
-	return resp.StatusCode >= 200 && resp.StatusCode < 300
+
+	var validity string
+	if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		validity = validImportKey
+	} else {
+		validity = invalidImportKey
+	}
+
+	validityMap[url] = validity
+	if *importLinksFile != "" {
+		f, err := os.OpenFile(*importLinksFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return validity == validImportKey
+		}
+		defer f.Close()
+		_, err = f.WriteString(fmt.Sprintf("%s %s\n", url, validity))
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return validity == validImportKey
 }
