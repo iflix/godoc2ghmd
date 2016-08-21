@@ -22,6 +22,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -39,18 +40,31 @@ var (
 	goroot = flag.String("goroot", runtime.GOROOT(), "Go root directory")
 
 	// layout control
-	tabWidth       = flag.Int("tabwidth", 4, "tab width")
-	showTimestamps = flag.Bool("timestamps", false, "show timestamps with directory listings")
-	templateDir    = flag.String("templates", "", "directory containing alternate template files")
-	showPlayground = flag.Bool("play", false, "enable playground in web interface")
-	showExamples   = flag.Bool("ex", false, "show examples in command line mode")
-	declLinks      = flag.Bool("links", true, "link identifiers to their declarations")
-	importAs       = flag.String("import_as", "", "import path to display")
+	tabWidth          = flag.Int("tabwidth", 4, "tab width")
+	showTimestamps    = flag.Bool("timestamps", false, "show timestamps with directory listings")
+	templateDir       = flag.String("templates", "", "directory containing alternate template files")
+	showPlayground    = flag.Bool("play", false, "enable playground in web interface")
+	showExamples      = flag.Bool("ex", false, "show examples in command line mode")
+	declLinks         = flag.Bool("links", true, "link identifiers to their declarations")
+	importAs          = flag.String("import_as", "", "import path to display")
+	importLinks       = flag.Bool("import_links", true, "link imports to their relative path or godoc.org page otherwise")
+	verifyImportLinks = flag.Bool("verify_import_links", true, "verify godoc.org links are accessible")
+
+	fmtProtobuf             = flag.Bool("fmt_protobuf", true, "enable formatting for generated Protobuf docs")
+	protobufPreludeMatcher  = flag.String("protobuf_prelude_matcher", "generated protocol buffer package", "string from which to match generate Protobuf prelude")
+	protobufFilesMatcher    = flag.String("protobuf_files_matcher", "generated from these files", "string from which to match .proto files list")
+	protobufMessagesMatcher = flag.String("protobuf_messages_matcher", "these top-level messages", "string from which to match Protobuf messages list")
+
+	stdLib = getStdLib()
 )
 
+func init() {
+	flag.Usage = usage
+	flag.Parse()
+}
+
 func usage() {
-	fmt.Fprintf(os.Stderr,
-		"usage: godoc2gh package [name ...]\n")
+	fmt.Fprintf(os.Stderr, "usage: godoc2gh package [name ...]\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
@@ -60,22 +74,29 @@ var (
 	fs   = vfs.NameSpace{}
 
 	funcs = map[string]interface{}{
-		"comment_md": comment_mdFunc,
-		"base":       path.Base,
-		"md":         mdFunc,
-		"pre":        preFunc,
-		"gh_url":     ghUrlFunc,
-		"import_as":  importAsFunc,
+		"pkgdoc_md":    pkgDoc_mdFunc,
+		"comment_md":   comment_mdFunc,
+		"base":         path.Base,
+		"md":           mdFunc,
+		"pre":          preFunc,
+		"gh_url":       ghUrlFunc,
+		"import_as":    importAsFunc,
+		"list_imports": listImportsFunc,
 	}
 )
 
 const punchCardWidth = 80
 
-func importAsFunc(importPath string) string {
-	if importAs != nil && *importAs != "" {
-		return *importAs
+func pkgDoc_mdFunc(comment string) string {
+	var buf bytes.Buffer
+	ToMD(&buf, comment, nil)
+
+	s := buf.String()
+	if *fmtProtobuf && strings.Contains(s, *protobufPreludeMatcher) {
+		s = fmtProtobufDoc(s)
 	}
-	return importPath
+
+	return s
 }
 
 func comment_mdFunc(comment string) string {
@@ -144,9 +165,6 @@ func readTemplates(p *godoc.Presentation, html bool) {
 }
 
 func main() {
-	flag.Usage = usage
-	flag.Parse()
-
 	// Check usage
 	if flag.NArg() == 0 {
 		usage()
@@ -174,7 +192,13 @@ func main() {
 
 	readTemplates(pres, false)
 
-	if err := godoc.CommandLine(os.Stdout, fs, pres, flag.Args()); err != nil {
-		log.Print(err)
+	var buf bytes.Buffer
+	if err := godoc.CommandLine(&buf, fs, pres, flag.Args()); err != nil {
+		log.Fatal(err)
+	}
+
+	replaced := regexp.MustCompile("[\n]{3,}").ReplaceAllLiteral(buf.Bytes(), []byte("\n\n"))
+	if _, err := os.Stdout.Write(bytes.TrimSpace(replaced)); err != nil {
+		log.Fatal(err)
 	}
 }
