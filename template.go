@@ -6,7 +6,7 @@ var pkgTemplate = `{{with .PDoc}}
 {{comment_md .Doc}}
 {{else}}
 # {{ .Name }}
-` + "`" + `import "{{.ImportPath}}"` + "`" + `
+` + "`" + `import "{{.ImportPath | import_as}}"` + "`" + `
 
 * [Overview](#pkg-overview)
 * [Index](#pkg-index){{if $.Examples}}
@@ -29,7 +29,7 @@ var pkgTemplate = `{{with .PDoc}}
 * [{{example_name .Name}}](#example_{{.Name}}){{- end}}{{- end}}
 {{with .Filenames}}
 #### <a name="pkg-files">Package files</a>
-{{range .}}[{{.|filename|html}}]({{.|srcLink|html|gh_url}}) {{end}}
+{{range .}}[{{.|filename|html}}]({{print "./"  (.|filename)}}) {{end}}
 {{end}}
 
 {{with .Consts}}## <a name="pkg-constants">Constants</a>
@@ -39,12 +39,12 @@ var pkgTemplate = `{{with .PDoc}}
 {{range .}}{{node $ .Decl | pre}}
 {{comment_md .Doc}}{{end}}{{end}}
 
-{{range .Funcs}}{{$name_html := html .Name}}## <a name="{{$name_html}}">func</a> [{{$name_html}}]({{posLink_url $ .Decl | gh_url}})
+{{range .Funcs}}{{$name_html := html .Name}}## <a name="{{$name_html}}">func</a> [{{$name_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
 {{comment_md .Doc}}
 {{example_html $ .Name}}
 {{callgraph_html $ "" .Name}}{{end}}
-{{range .Types}}{{$tname := .Name}}{{$tname_html := html .Name}}## <a name="{{$tname_html}}">type</a> [{{$tname_html}}]({{posLink_url $ .Decl | gh_url}})
+{{range .Types}}{{$tname := .Name}}{{$tname_html := html .Name}}## <a name="{{$tname_html}}">type</a> [{{$tname_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
 {{comment_md .Doc}}{{range .Consts}}
 {{node $ .Decl | pre }}
@@ -56,13 +56,13 @@ var pkgTemplate = `{{with .PDoc}}
 {{implements_html $ $tname}}
 {{methodset_html $ $tname}}
 
-{{range .Funcs}}{{$name_html := html .Name}}### <a name="{{$name_html}}">func</a> [{{$name_html}}]({{posLink_url $ .Decl | gh_url}})
+{{range .Funcs}}{{$name_html := html .Name}}### <a name="{{$name_html}}">func</a> [{{$name_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
 {{comment_md .Doc}}
 {{example_html $ .Name}}{{end}}
 {{callgraph_html $ "" .Name}}
 
-{{range .Methods}}{{$name_html := html .Name}}### <a name="{{$tname_html}}.{{$name_html}}">func</a> ({{md .Recv}}) [{{$name_html}}]({{posLink_url $ .Decl | gh_url}})
+{{range .Methods}}{{$name_html := html .Name}}### <a name="{{$tname_html}}.{{$name_html}}">func</a> ({{md .Recv}}) [{{$name_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
 {{comment_md .Doc}}
 {{$name := printf "%s_%s" $tname .Name}}{{example_html $ $name}}
@@ -74,7 +74,7 @@ var pkgTemplate = `{{with .PDoc}}
 ## <a name="pkg-note-{{$marker}}">{{noteTitle $marker | html}}s
 <ul style="list-style: none; padding: 0;">
 {{range .}}
-<li><a href="{{posLink_url $ . | gh_url}}">&#x261e;</a> {{html .Body}}</li>
+<li><a href="{{gh_url $ .}}">&#x261e;</a> {{html .Body}}</li>
 {{end}}
 </ul>
 {{end}}

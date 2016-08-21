@@ -7,16 +7,18 @@
 //
 // Usage
 //
-//    godoc2md $PACKAGE > $GOPATH/src/$PACKAGE/README.md
+//    godoc2gh $PACKAGE > $GOPATH/src/$PACKAGE/README.md
 package main
 
 import (
 	"bytes"
 	"flag"
 	"fmt"
+	"go/ast"
 	"go/build"
+	"go/doc"
+	"go/token"
 	"log"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -43,11 +45,12 @@ var (
 	showPlayground = flag.Bool("play", false, "enable playground in web interface")
 	showExamples   = flag.Bool("ex", false, "show examples in command line mode")
 	declLinks      = flag.Bool("links", true, "link identifiers to their declarations")
+	importAs       = flag.String("import_as", "", "import path to display")
 )
 
 func usage() {
 	fmt.Fprintf(os.Stderr,
-		"usage: godoc2md package [name ...]\n")
+		"usage: godoc2gh package [name ...]\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
@@ -62,10 +65,18 @@ var (
 		"md":         mdFunc,
 		"pre":        preFunc,
 		"gh_url":     ghUrlFunc,
+		"import_as":  importAsFunc,
 	}
 )
 
 const punchCardWidth = 80
+
+func importAsFunc(importPath string) string {
+	if importAs != nil && *importAs != "" {
+		return *importAs
+	}
+	return importPath
+}
 
 func comment_mdFunc(comment string) string {
 	var buf bytes.Buffer
@@ -83,15 +94,40 @@ func preFunc(text string) string {
 	return "``` go\n" + text + "\n```"
 }
 
-func ghUrlFunc(text string) string {
-	text = strings.Replace(text, "/src/target/", "", 1)
-	u, _ := url.Parse(text)
-	if u.Fragment == "" {
-		return "./" + text
+func ghUrlFunc(info *godoc.PageInfo, n interface{}) string {
+	var pos, end token.Pos
+
+	switch an := n.(type) {
+	case ast.Node:
+		pos = an.Pos()
+		end = an.End()
+	case *doc.Note:
+		pos = an.Pos
+		end = an.End
+	default:
+		panic(fmt.Sprintf("wrong type for gh_url template formatter: %T", an))
 	}
-	// godoc requires a 10-line adjustment for some reason...
-	i, _ := strconv.Atoi(u.Fragment[1:])
-	return "./" + u.Path + "#L" + strconv.Itoa(i+10)
+
+	var posLine int
+	var filePath string
+	var linesFragment string
+	if pos.IsValid() {
+		p := info.FSet.Position(pos)
+		posLine = p.Line
+		filePath = p.Filename
+		if strings.HasPrefix(filePath, "/target/") {
+			filePath = filePath[len("/target/"):]
+		}
+		linesFragment = "#L" + strconv.Itoa(posLine)
+	}
+	if end.IsValid() {
+		endPos := info.FSet.Position(end)
+		if endPos.Line > posLine {
+			linesFragment += "-L" + strconv.Itoa(endPos.Line)
+		}
+	}
+
+	return "./" + filePath + linesFragment
 }
 
 func readTemplate(name, data string) *template.Template {
