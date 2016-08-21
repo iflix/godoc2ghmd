@@ -51,6 +51,7 @@ var (
 	importLinks       = flag.Bool("import_links", true, "link imports to their relative path or godoc.org page otherwise")
 	verifyImportLinks = flag.Bool("verify_import_links", true, "verify godoc.org links are accessible")
 	importLinksFile   = flag.String("import_links_file", "", "file location to read and write state for godoc.org verifications")
+	vendorPath        = flag.String("vendor", "", "path to vendor directory to determine if imports are vendored")
 
 	fmtProtobuf             = flag.Bool("fmt_protobuf", true, "enable formatting for generated Protobuf docs")
 	protobufPreludeMatcher  = flag.String("protobuf_prelude_matcher", "generated protocol buffer package", "string from which to match generate Protobuf prelude")

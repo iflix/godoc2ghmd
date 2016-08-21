@@ -220,8 +220,28 @@ func listImportsFunc(info *godoc.PageInfo, imports []string, importPath string) 
 			continue
 		}
 		godocUrl := "https://godoc.org/" + imp
-		if !*verifyImportLinks || isValidGodocUrl(godocUrl, importLinksState) {
-			nonStd[i] = fmt.Sprintf("[%s](%s)", imp, godocUrl)
+		isVendored := isImportVendored(imp)
+		if !*verifyImportLinks {
+			if !isVendored {
+				nonStd[i] = fmt.Sprintf("[%s](%s)", imp, godocUrl)
+				continue
+			} else {
+				nonStd[i] = fmt.Sprintf("[%s](%s) ([godoc](%s))", imp, "/vendor/"+imp, godocUrl)
+				continue
+			}
+		} else {
+			hasGodoc := isValidGodocUrl(godocUrl, importLinksState)
+			if isVendored && hasGodoc {
+				nonStd[i] = fmt.Sprintf("[%s](%s) ([godoc](%s))", imp, "/vendor/"+imp, godocUrl)
+				continue
+			}
+			if isVendored {
+				nonStd[i] = fmt.Sprintf("[%s](%s)", imp, "/vendor/"+imp)
+				continue
+			}
+			if hasGodoc {
+				nonStd[i] = fmt.Sprintf("[%s](%s)", imp, godocUrl)
+			}
 		}
 	}
 
@@ -257,4 +277,14 @@ func isValidGodocUrl(url string, validityMap map[string]string) bool {
 	}
 
 	return validity == validImportKey
+}
+
+func isImportVendored(importPath string) bool {
+	if *vendorPath == "" {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(*vendorPath, importPath)); err != nil {
+		return false
+	}
+	return true
 }
