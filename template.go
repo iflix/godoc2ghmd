@@ -15,7 +15,7 @@ var pkgTemplate = `{{with .PDoc}}
 
 ## <a name="pkg-overview">Overview</a>
 {{pkgdoc_md .Doc}}
-{{example_html $ ""}}
+{{example_text $ "" "#### "}}
 
 ## <a name="pkg-imports">Imported Packages</a>
 
@@ -43,7 +43,7 @@ var pkgTemplate = `{{with .PDoc}}
 {{range .Funcs}}{{$name_html := html .Name}}## <a name="{{$name_html}}">func</a> [{{$name_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
 {{comment_md .Doc}}
-{{example_html $ .Name}}
+{{example_text $ "" "#### "}}
 {{callgraph_html $ "" .Name}}{{end}}
 {{range .Types}}{{$tname := .Name}}{{$tname_html := html .Name}}## <a name="{{$tname_html}}">type</a> [{{$tname_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
@@ -53,20 +53,21 @@ var pkgTemplate = `{{with .PDoc}}
 {{node $ .Decl | pre }}
 {{comment_md .Doc}}{{end}}
 
-{{example_html $ $tname}}
+{{example_text $ "" "#### "}}
 {{implements_html $ $tname}}
 {{methodset_html $ $tname}}
 
 {{range .Funcs}}{{$name_html := html .Name}}### <a name="{{$name_html}}">func</a> [{{$name_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
 {{comment_md .Doc}}
-{{example_html $ .Name}}{{end}}
+{{example_text $ "" "#### "}}
 {{callgraph_html $ "" .Name}}
 
 {{range .Methods}}{{$name_html := html .Name}}### <a name="{{$tname_html}}.{{$name_html}}">func</a> ({{md .Recv}}) [{{$name_html}}]({{gh_url $ .Decl}})
 {{node $ .Decl | pre}}
 {{comment_md .Doc}}
-{{$name := printf "%s_%s" $tname .Name}}{{example_html $ $name}}
+{{$name := printf "%s_%s" $tname .Name}}
+{{example_text $ "" "#### "}}
 {{callgraph_html $ .Recv .Name}}
 {{end}}{{end}}{{end}}
 
