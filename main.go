@@ -103,19 +103,9 @@ func usage() {
 }
 
 var (
-	pres *godoc.Presentation
-	fs   = vfs.NameSpace{}
-
-	funcs = map[string]interface{}{
-		"pkgdoc_md":    pkgDoc_mdFunc,
-		"comment_md":   comment_mdFunc,
-		"base":         path.Base,
-		"md":           mdFunc,
-		"pre":          preFunc,
-		"gh_url":       ghUrlFunc,
-		"import_as":    importAsFunc,
-		"list_imports": listImportsFunc,
-	}
+	pres  *godoc.Presentation
+	fs    = vfs.NameSpace{}
+	funcs map[string]interface{}
 )
 
 const punchCardWidth = 80
@@ -222,6 +212,18 @@ func main() {
 	pres.DeclLinks = *declLinks
 	pres.SrcMode = false
 	pres.HTMLMode = false
+
+	funcs = map[string]interface{}{
+		"pkgdoc_md":    pkgDoc_mdFunc,
+		"comment_md":   comment_mdFunc,
+		"example_md":   (*myPres)(pres).exampleMDFunc,
+		"base":         path.Base,
+		"md":           mdFunc,
+		"pre":          preFunc,
+		"gh_url":       ghUrlFunc,
+		"import_as":    importAsFunc,
+		"list_imports": listImportsFunc,
+	}
 
 	readTemplates(pres, false)
 
