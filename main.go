@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// godoc2md converts godoc formatted package documentation into Markdown format.
-//
-//
-// Usage
-//
-//    godoc2gh $PACKAGE > $GOPATH/src/$PACKAGE/README.md
 package main
 
 import (
@@ -52,6 +46,7 @@ var (
 	verifyImportLinks = flag.Bool("verify_import_links", true, "verify godoc.org links are accessible")
 	importLinksFile   = flag.String("import_links_file", "", "file location to read and write state for godoc.org verifications")
 	vendorPath        = flag.String("vendor", "", "path to vendor directory to determine if imports are vendored")
+	filePath          = flag.String("file", "", "If specified, write output to the given file-name instead of stdout.")
 
 	fmtProtobuf             = flag.Bool("fmt_protobuf", true, "enable formatting for generated Protobuf docs")
 	protobufPreludeMatcher  = flag.String("protobuf_prelude_matcher", "generated protocol buffer package", "string from which to match generate Protobuf prelude")
@@ -232,8 +227,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	replaced := regexp.MustCompile("[\n]{3,}").ReplaceAllLiteral(buf.Bytes(), []byte("\n\n"))
-	if _, err := os.Stdout.Write(bytes.TrimSpace(replaced)); err != nil {
-		log.Fatal(err)
+	replaced := bytes.TrimSpace(regexp.MustCompile("[\n]{3,}").ReplaceAllLiteral(buf.Bytes(), []byte("\n\n")))
+	if *filePath == "" {
+		_, err := os.Stdout.Write(replaced)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		err := ioutil.WriteFile(*filePath, replaced, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
