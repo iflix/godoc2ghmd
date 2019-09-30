@@ -11,6 +11,8 @@
 //
 // Notes
 //
+// This tool does not work on modules outside of GOPATH!
+//
 // While the output of godoc2ghmd can simply be piped into a file, e.g.:
 //
 //    $ godoc2ghmd github.com/iflix/godoc2ghmd > README.md
