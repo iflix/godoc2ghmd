@@ -15,14 +15,11 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
 
-    - name: "Build darwin/amd64"
-      run: env GOOS=darwin GOARCH=amd64 go build -v -o godoc2ghmd_darwin_amd64 .
-
-    - name: "Build linux/amd64"
-      run: env GOOS=linux GOARCH=amd64 go build -v -o godoc2ghmd_linux_amd64 .
-
-    - name: "Build windows/amd64"
-      run: env GOOS=windows GOARCH=amd64 go build -v -o godoc2ghmd_windows_amd64 .
+    - name: "Build binaries"
+      run: |
+        env GOOS=darwin  GOARCH=amd64 go build -v -o godoc2ghmd_darwin_amd64 .
+        env GOOS=linux   GOARCH=amd64 go build -v -o godoc2ghmd_linux_amd64 .
+        env GOOS=windows GOARCH=amd64 go build -v -o godoc2ghmd_windows_amd64 .
 
     - name: Upload binaries
       uses: skx/github-action-publish-binaries@master
