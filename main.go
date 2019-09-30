@@ -92,7 +92,7 @@ func init() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: godoc2gh package [name ...]\n")
+	fmt.Fprintf(os.Stderr, "usage: godoc2ghmd package [name ...]\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
