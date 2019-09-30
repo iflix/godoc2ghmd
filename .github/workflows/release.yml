@@ -1,0 +1,40 @@
+on: release
+name: Build and Publish Release
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go 1.13.1
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13.1
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Build
+      run: go build -v .
+
+    - name: "Release darwin/amd64"
+      uses: ngs/go-release.action@v1.0.1
+      env:
+        GOOS: "darwin"
+        GOARCH: "amd64"
+      secrets: "GITHUB_TOKEN"
+
+    - name: "Release linux/amd64"
+      uses: ngs/go-release.action@v1.0.1
+      env:
+        GOOS: "linux"
+        GOARCH: "amd64"
+      secrets: "GITHUB_TOKEN"
+
+    - name: "Release windows/amd64"
+      uses: ngs/go-release.action@v1.0.1
+      env:
+        GOOS: "windows"
+        GOARCH: "amd64"
+      secrets: "GITHUB_TOKEN"
