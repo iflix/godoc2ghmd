@@ -24,20 +24,9 @@ jobs:
     - name: "Build windows/amd64"
       run: env GOOS=windows GOARCH=amd64 go build -v -o godoc2ghmd_windows_amd64 .
 
-    - uses: actions/upload-artifact@master
-      name: "Upload darwin/amd64 binary"
+    - name: Upload binaries
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: godoc2ghmd_darwin_amd64
-        path: godoc2ghmd_darwin_amd64
-
-    - uses: actions/upload-artifact@master
-      name: "Upload linux/amd64 binary"
-      with:
-        name: godoc2ghmd_linux_amd64
-        path: godoc2ghmd_linux_amd64
-
-    - uses: actions/upload-artifact@master
-      name: "Upload windows/amd64 binary"
-      with:
-        name: godoc2ghmd_windows_amd64
-        path: godoc2ghmd_windows_amd64
+        args: 'godoc2ghmd_*_amd64'
