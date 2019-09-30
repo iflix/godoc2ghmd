@@ -23,18 +23,15 @@ jobs:
       env:
         GOOS: "darwin"
         GOARCH: "amd64"
-      secrets: "GITHUB_TOKEN"
 
     - name: "Release linux/amd64"
       uses: ngs/go-release.action@v1.0.1
       env:
         GOOS: "linux"
         GOARCH: "amd64"
-      secrets: "GITHUB_TOKEN"
 
     - name: "Release windows/amd64"
       uses: ngs/go-release.action@v1.0.1
       env:
         GOOS: "windows"
         GOARCH: "amd64"
-      secrets: "GITHUB_TOKEN"
