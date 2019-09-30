@@ -1,5 +1,3 @@
-use 'godoc cmd/go/doc' for documentation on the go/doc command 
-
 # doc
 `import "go/doc"`
 
@@ -12,15 +10,16 @@ Package doc extracts source code documentation from a Go AST.
 
 ## <a name="pkg-imports">Imported Packages</a>
 
-No packages beyond the Go standard library are imported.
+- internal/lazyregexp
 
 ## <a name="pkg-index">Index</a>
 * [Variables](#pkg-variables)
-* [func Examples(files ...\*ast.File) []\*Example](#Examples)
+* [func IsPredeclared(s string) bool](#IsPredeclared)
 * [func Synopsis(s string) string](#Synopsis)
 * [func ToHTML(w io.Writer, text string, words map[string]string)](#ToHTML)
 * [func ToText(w io.Writer, text string, indent, preIndent string, width int)](#ToText)
 * [type Example](#Example)
+  * [func Examples(files ...\*ast.File) []\*Example](#Examples)
 * [type Filter](#Filter)
 * [type Func](#Func)
 * [type Mode](#Mode)
@@ -43,24 +42,11 @@ var IllegalPrefixes = []string{
 }
 ```
 
-## <a name="Examples">func</a> [Examples](./example.go#L47)
+## <a name="IsPredeclared">func</a> [IsPredeclared](./reader.go#L867)
 ``` go
-func Examples(files ...*ast.File) []*Example
+func IsPredeclared(s string) bool
 ```
-Examples returns the examples found in the files, sorted by Name field.
-The Order fields record the order in which the examples were encountered.
-
-Playable Examples must be in a package whose name ends in "_test".
-An Example is "playable" (the Play field is non-nil) in either of these
-circumstances:
-
-	- The example function is self-contained: the function references only
-	  identifiers from other packages (or predeclared identifiers, such as
-	  "int") and the test file does not include a dot import.
-	- The entire test file is the example: the file contains exactly one
-	  example function, zero test or benchmark functions, and at least one
-	  top-level function, type, variable, or constant declaration other
-	  than the example function.
+IsPredeclared reports whether s is a predeclared identifier.
 
 ## <a name="Synopsis">func</a> [Synopsis](./synopsis.go#L68)
 ``` go
@@ -73,7 +59,7 @@ has no \n, \r, or \t characters and uses only single spaces between
 words. If s starts with any of the IllegalPrefixes, the result
 is the empty string.
 
-## <a name="ToHTML">func</a> [ToHTML](./comment.go#L289)
+## <a name="ToHTML">func</a> [ToHTML](./comment.go#L306)
 ``` go
 func ToHTML(w io.Writer, text string, words map[string]string)
 ```
@@ -87,7 +73,7 @@ Each span of unindented non-blank lines is converted into
 a single paragraph. There is one exception to the rule: a span that
 consists of a single line, is followed by another paragraph span,
 begins with a capital letter, and contains no punctuation
-is formatted as a heading.
+other than parentheses and commas is formatted as a heading.
 
 A span of indented lines is converted into a <pre> block,
 with the common indent prefix removed.
@@ -100,7 +86,7 @@ Go identifiers that appear in the words map are italicized; if the corresponding
 map value is not the empty string, it is considered a URL and the word is converted
 into a link.
 
-## <a name="ToText">func</a> [ToText](./comment.go#L403)
+## <a name="ToText">func</a> [ToText](./comment.go#L420)
 ``` go
 func ToText(w io.Writer, text string, indent, preIndent string, width int)
 ```
@@ -122,8 +108,28 @@ type Example struct {
     EmptyOutput bool // expect empty output
     Order       int  // original source code order
 }
+
 ```
 An Example represents an example function found in a source files.
+
+### <a name="Examples">func</a> [Examples](./example.go#L47)
+``` go
+func Examples(files ...*ast.File) []*Example
+```
+Examples returns the examples found in the files, sorted by Name field.
+The Order fields record the order in which the examples were encountered.
+
+Playable Examples must be in a package whose name ends in "_test".
+An Example is "playable" (the Play field is non-nil) in either of these
+circumstances:
+
+	- The example function is self-contained: the function references only
+	  identifiers from other packages (or predeclared identifiers, such as
+	  "int") and the test file does not include a dot import.
+	- The entire test file is the example: the file contains exactly one
+	  example function, zero test or benchmark functions, and at least one
+	  top-level function, type, variable, or constant declaration other
+	  than the example function.
 
 ## <a name="Filter">type</a> [Filter](./filter.go#L9)
 ``` go
@@ -143,6 +149,7 @@ type Func struct {
     Orig  string // original receiver "T" or "*T"
     Level int    // embedding level; 0 means not embedded
 }
+
 ```
 Func is the documentation for a func declaration.
 
@@ -154,13 +161,18 @@ Mode values control the operation of New.
 
 ``` go
 const (
-    // extract documentation for all package-level declarations,
-    // not just exported ones
+    // AllDecls says to extract documentation for all package-level
+    // declarations, not just exported ones.
     AllDecls Mode = 1 << iota
 
-    // show all embedded methods, not just the ones of
-    // invisible (unexported) anonymous fields
+    // AllMethods says to show all embedded methods, not just the ones of
+    // invisible (unexported) anonymous fields.
     AllMethods
+
+    // PreserveAST says to leave the AST unmodified. Originally, pieces of
+    // the AST such as function bodies were nil-ed out to save memory in
+    // godoc, but not all programs want that behavior.
+    PreserveAST
 )
 ```
 
@@ -171,6 +183,7 @@ type Note struct {
     UID      string    // uid found with the marker
     Body     string    // note body text
 }
+
 ```
 A Note represents a marked comment starting with "MARKER(uid): note body".
 Any note with a marker of 2 or more upper case [A-Z] letters and a uid of
@@ -197,10 +210,11 @@ type Package struct {
     Vars   []*Value
     Funcs  []*Func
 }
+
 ```
 Package is the documentation for an entire package.
 
-### <a name="New">func</a> [New](./doc.go#L94)
+### <a name="New">func</a> [New](./doc.go#L99)
 ``` go
 func New(pkg *ast.Package, importPath string, mode Mode) *Package
 ```
@@ -227,6 +241,7 @@ type Type struct {
     Funcs   []*Func  // sorted list of functions returning this type
     Methods []*Func  // sorted list of methods (including embedded ones) of this type
 }
+
 ```
 Type is the documentation for a type declaration.
 
@@ -238,6 +253,7 @@ type Value struct {
     Decl  *ast.GenDecl
     // contains filtered or unexported fields
 }
+
 ```
 Value is the documentation for a (possibly grouped) var or const declaration.
 
